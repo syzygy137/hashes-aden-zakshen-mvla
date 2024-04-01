@@ -68,6 +68,14 @@ public class MyIntHash {
 	public MyIntHash(MODE mode, double load_factor, int tableSize) {
 		// TODO Part1: initialize table size, size, mode, and load_factor
 		//             Instantiate hashTable1 and initialize it
+		this.mode = mode;
+		this.load_factor = load_factor;
+		this.tableSize = tableSize;
+		hashTable1 = new int[tableSize];
+		for (int i = 0; i < tableSize; i++) {
+			hashTable1[i] = -1;
+		}
+		size = 0;
 	}
 
 	/**
@@ -80,6 +88,15 @@ public class MyIntHash {
 
 		// TODO Part1: initialize table size, size, mode, and load_factor
 		//             Instantiate hashTable1 and initialize it
+		
+		this.mode = mode;
+		this.load_factor = load_factor;
+		this.tableSize = INITIAL_SIZE;
+		hashTable1 = new int[tableSize];
+		for (int i = 0; i < tableSize; i++) {
+			hashTable1[i] = -1;
+		}
+		size = 0;
 	}
 
 	/**
@@ -91,6 +108,10 @@ public class MyIntHash {
 	 */
 	private void initHashTable(int[] hashTable) {
 		// TODO Part1: Write this method 
+		for (int i = 0; i < hashTable.length; i++) {
+			hashTable1[i] = -1;
+		}
+		size = 0;
 	}
 	
 	/**
@@ -101,7 +122,7 @@ public class MyIntHash {
 	 */
 	private int hashFx(int key) {
 		// TODO Part1: Write this method.
-		return -1;
+		return key % tableSize;
 	}
 	
 	/**
@@ -119,7 +140,7 @@ public class MyIntHash {
 		//      Write the code to implement this check and call growHash() if required (no parameters)
 		
 		switch (mode) {
-			case Linear : return add_LP(key); 
+			case Linear : return add_LP(key);
 			default : return false;
 		}
 	}
@@ -200,7 +221,15 @@ public class MyIntHash {
 	 */
 	private boolean isPrime(int size) {
 		// TODO Part2: Write this method
-		return false;
+		if (size < 3) {
+			return false;
+		}
+		for (int i = 2; i <= Math.sqrt(size); i++) {
+			if (size % i == 0) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	/**
@@ -217,6 +246,23 @@ public class MyIntHash {
 	 */
 	private boolean add_LP(int key) {
 		// TODO Part1: Write this function
+		if (contains_LP(key)) {
+			return true;
+		}
+		int index = hashFx(key);
+		if (hashTable1[index] == -1 || hashTable1[index] == -2) {
+			hashTable1[index] = key;
+			return true;
+		}
+		for (int i = index + 1; i < index; i++) {
+			if (i == tableSize) {
+				i = 0;
+			}
+			if (hashTable1[index] == -1 || hashTable1[index] == -2) {
+				hashTable1[index] = key;
+				return true;
+			}
+		}
 		return false;
 	}
 	
@@ -236,6 +282,21 @@ public class MyIntHash {
 	 */
 	private boolean contains_LP(int key) {
 		// TODO Part1: Write this method.
+		int index = hashFx(key);
+		if (hashTable1[index] == key) {
+			return true;
+		}
+		for (int i = index + 1; i < index; i++) {
+			if (i == tableSize) {
+				i = 0;
+			}
+			if (hashTable1[index] == -1) {
+				break;
+			}
+			if (hashTable1[index] == key) {
+				return true;
+			}
+		}
 		return false;
 	}
 	
@@ -255,8 +316,8 @@ public class MyIntHash {
 	 * @return true, if successful
 	 */
 	private boolean remove_LP(int key) {
-		// TODO Part2: Write this function
-		return false;		
+		
+		return false;
 	}
 		
 	/**
@@ -273,7 +334,7 @@ public class MyIntHash {
 		// TODO Part1: as you code this project, you will add different cases. 
 		//             for now, complete the case for Linear Probing
 		switch (mode) {
-		//case Linear : return // What needs to go here??? write this and uncomment
+		case Linear : return hashTable1[index];
 		}
 		return -1;
 	}
@@ -285,7 +346,7 @@ public class MyIntHash {
 	 */
 	public int size() {
 		// TODO Part1: Write this method
-		return -1;
+		return size;
 	}
 
 	/**
@@ -294,6 +355,7 @@ public class MyIntHash {
 	 */
 	public void clear() {
 		// TODO Part1: Write this method
+		initHashTable(hashTable1);
 	}
 
 	/**
@@ -303,7 +365,7 @@ public class MyIntHash {
 	 */
 	public boolean isEmpty() {
 		// TODO Part1: Write this method
-		return true;
+		return (size == 0);
 	}
 
 	/**
@@ -313,7 +375,7 @@ public class MyIntHash {
 	 */
 	public double getCurrLoadFactor() {
 		// TODO: write this method
-		return 1.0;
+		return (double)(size) / (double)(tableSize);
 	}
 
 	/**
