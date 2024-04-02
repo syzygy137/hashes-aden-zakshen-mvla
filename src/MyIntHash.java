@@ -247,19 +247,25 @@ public class MyIntHash {
 	private boolean add_LP(int key) {
 		// TODO Part1: Write this function
 		if (contains_LP(key)) {
-			return true;
+			return false;
 		}
 		int index = hashFx(key);
 		if (hashTable1[index] == -1 || hashTable1[index] == -2) {
 			hashTable1[index] = key;
+			size++;
 			return true;
 		}
-		for (int i = index + 1; i < index; i++) {
-			if (i == tableSize) {
-				i = 0;
+		for (int i = index + 1; i < tableSize; i++) {
+			if (hashTable1[i] == -1 || hashTable1[i] == -2) {
+				hashTable1[i] = key;
+				size++;
+				return true;
 			}
-			if (hashTable1[index] == -1 || hashTable1[index] == -2) {
-				hashTable1[index] = key;
+		}
+		for (int i = 0; i < index; i++) {
+			if (hashTable1[i] == -1 || hashTable1[i] == -2) {
+				hashTable1[i] = key;
+				size++;
 				return true;
 			}
 		}
@@ -286,14 +292,19 @@ public class MyIntHash {
 		if (hashTable1[index] == key) {
 			return true;
 		}
-		for (int i = index + 1; i < index; i++) {
-			if (i == tableSize) {
-				i = 0;
-			}
-			if (hashTable1[index] == -1) {
+		for (int i = index + 1; i < tableSize; i++) {
+			if (hashTable1[i] == -1) {
 				break;
 			}
-			if (hashTable1[index] == key) {
+			if (hashTable1[i] == key) {
+				return true;
+			}
+		}
+		for (int i = 0; i < index; i++) {
+			if (hashTable1[i] == -1) {
+				break;
+			}
+			if (hashTable1[i] == key) {
 				return true;
 			}
 		}
