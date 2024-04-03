@@ -109,7 +109,7 @@ public class MyIntHash {
 	private void initHashTable(int[] hashTable) {
 		// TODO Part1: Write this method 
 		for (int i = 0; i < hashTable.length; i++) {
-			hashTable1[i] = -1;
+			hashTable[i] = -1;
 		}
 		size = 0;
 	}
@@ -199,6 +199,15 @@ public class MyIntHash {
 	 */
 	private void growHash(int[] table, int newSize) {
 		// TODO Part2:  Write this method
+		hashTable1 = new int[newSize];
+		tableSize = newSize;
+		initHashTable(hashTable1);
+		for (int thing : table) {
+			if (thing >= 0) {
+				add(thing);
+			}
+		}
+		System.out.println(newSize);
 	}
 	
 	/**
@@ -209,8 +218,11 @@ public class MyIntHash {
 	 * @return the new table size
 	 */
 	private int getNewTableSize(int startSize) {
-		// TODO Part2: Write this method
-		return -1;
+		int size = startSize * 2 + 1;
+		while (!isPrime(size)) {
+			size += 2;
+		}
+		return size;
 	}
 	
 	/**
@@ -233,6 +245,16 @@ public class MyIntHash {
 	}
 	
 	/**
+	 *
+	 * @param index the index
+	 * @return the next index, wrapping around
+	 */
+	
+	private int wrap(int index) {
+		return (index >= tableSize - 1) ? 0 : index + 1;
+	}
+	
+	/**
 	 * Adds the key using the Linear probing strategy:
 	 * 
 	 * 1) Find the first empty slot sequentially, starting at the index from hashFx(key)
@@ -246,6 +268,7 @@ public class MyIntHash {
 	 */
 	private boolean add_LP(int key) {
 		// TODO Part1: Write this function
+		System.out.println(size + " " + tableSize);
 		if (contains_LP(key)) {
 			return false;
 		}
@@ -253,21 +276,21 @@ public class MyIntHash {
 		if (hashTable1[index] == -1 || hashTable1[index] == -2) {
 			hashTable1[index] = key;
 			size++;
+			if (getCurrLoadFactor() > load_factor) {
+				growHash(hashTable1, getNewTableSize(tableSize));
+			}
 			return true;
 		}
-		for (int i = index + 1; i < tableSize; i++) {
+		for (int i = wrap(index); i != index && i < tableSize;) {
 			if (hashTable1[i] == -1 || hashTable1[i] == -2) {
 				hashTable1[i] = key;
 				size++;
+				if (getCurrLoadFactor() > load_factor) {
+					growHash(hashTable1, getNewTableSize(tableSize));
+				}
 				return true;
 			}
-		}
-		for (int i = 0; i < index; i++) {
-			if (hashTable1[i] == -1 || hashTable1[i] == -2) {
-				hashTable1[i] = key;
-				size++;
-				return true;
-			}
+			i = wrap(i);
 		}
 		return false;
 	}
@@ -292,22 +315,16 @@ public class MyIntHash {
 		if (hashTable1[index] == key) {
 			return true;
 		}
-		for (int i = index + 1; i < tableSize; i++) {
+		for (int i = wrap(index); i != index;) {
 			if (hashTable1[i] == -1) {
 				break;
 			}
 			if (hashTable1[i] == key) {
 				return true;
 			}
+			i = wrap(i);
 		}
-		for (int i = 0; i < index; i++) {
-			if (hashTable1[i] == -1) {
-				break;
-			}
-			if (hashTable1[i] == key) {
-				return true;
-			}
-		}
+
 		return false;
 	}
 	
@@ -327,7 +344,23 @@ public class MyIntHash {
 	 * @return true, if successful
 	 */
 	private boolean remove_LP(int key) {
-		
+		int index = hashFx(key);
+		int next;
+		if (hashTable1[index] == key) {
+			next = hashTable1[wrap(index)];
+			hashTable1[index] = (next == -1) ? -1 : -2;
+			size--;
+			return true;
+		}
+		for (int i = wrap(index); i != index;) {
+			if (hashTable1[i] == key) {
+				next = hashTable1[wrap(i)];
+				hashTable1[i] = (next == -1) ? -1 : -2;
+				size--;
+				return true;
+			}
+			i = wrap(i);
+		}
 		return false;
 	}
 		
