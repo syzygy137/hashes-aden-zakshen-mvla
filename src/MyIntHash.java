@@ -73,7 +73,7 @@ public class MyIntHash {
 		this.tableSize = tableSize;
 		hashTable1 = new int[tableSize];
 		for (int i = 0; i < tableSize; i++) {
-			hashTable1[i] = -1;
+			hashTable1[i] = EMPTY;
 		}
 		size = 0;
 	}
@@ -94,7 +94,7 @@ public class MyIntHash {
 		this.tableSize = INITIAL_SIZE;
 		hashTable1 = new int[tableSize];
 		for (int i = 0; i < tableSize; i++) {
-			hashTable1[i] = -1;
+			hashTable1[i] = EMPTY;
 		}
 		size = 0;
 	}
@@ -109,7 +109,7 @@ public class MyIntHash {
 	private void initHashTable(int[] hashTable) {
 		// TODO Part1: Write this method 
 		for (int i = 0; i < hashTable.length; i++) {
-			hashTable[i] = -1;
+			hashTable[i] = EMPTY;
 		}
 		size = 0;
 	}
@@ -273,7 +273,7 @@ public class MyIntHash {
 			return false;
 		}
 		int index = hashFx(key);
-		if (hashTable1[index] == -1 || hashTable1[index] == -2) {
+		if (hashTable1[index] == EMPTY || hashTable1[index] == REMOVED) {
 			hashTable1[index] = key;
 			size++;
 			if (getCurrLoadFactor() > load_factor) {
@@ -282,7 +282,7 @@ public class MyIntHash {
 			return true;
 		}
 		for (int i = wrap(index); i != index && i < tableSize;) {
-			if (hashTable1[i] == -1 || hashTable1[i] == -2) {
+			if (hashTable1[i] == EMPTY || hashTable1[i] == REMOVED) {
 				hashTable1[i] = key;
 				size++;
 				if (getCurrLoadFactor() > load_factor) {
@@ -316,7 +316,7 @@ public class MyIntHash {
 			return true;
 		}
 		for (int i = wrap(index); i != index;) {
-			if (hashTable1[i] == -1) {
+			if (hashTable1[i] == EMPTY) {
 				break;
 			}
 			if (hashTable1[i] == key) {
@@ -348,14 +348,14 @@ public class MyIntHash {
 		int next;
 		if (hashTable1[index] == key) {
 			next = hashTable1[wrap(index)];
-			hashTable1[index] = (next == -1) ? -1 : -2;
+			hashTable1[index] = (next == EMPTY) ? EMPTY : REMOVED;
 			size--;
 			return true;
 		}
 		for (int i = wrap(index); i != index;) {
 			if (hashTable1[i] == key) {
 				next = hashTable1[wrap(i)];
-				hashTable1[i] = (next == -1) ? -1 : -2;
+				hashTable1[i] = (next == EMPTY) ? EMPTY : REMOVED;
 				size--;
 				return true;
 			}
@@ -380,7 +380,7 @@ public class MyIntHash {
 		switch (mode) {
 		case Linear : return hashTable1[index];
 		}
-		return -1;
+		return EMPTY;
 	}
 	
 	/**
