@@ -141,6 +141,7 @@ public class MyIntHash {
 		
 		switch (mode) {
 			case Linear : return add_LP(key);
+			case Quadratic : return add_QP(key);
 			default : return false;
 		}
 	}
@@ -155,6 +156,7 @@ public class MyIntHash {
 	public boolean contains(int key) {
 		switch (mode) {
 			case Linear : return contains_LP(key); 
+			case Quadratic : return contains_QP(key);
 			default : return false;
 		}
 	}
@@ -169,6 +171,7 @@ public class MyIntHash {
 	public boolean remove(int key) {
 		switch (mode) {
 			case Linear : return remove_LP(key); 
+			case Quadratic : return remove_QP(key);
 			default : return false;
 		}
 	}
@@ -207,7 +210,6 @@ public class MyIntHash {
 				add(thing);
 			}
 		}
-		System.out.println(newSize);
 	}
 	
 	/**
@@ -268,7 +270,6 @@ public class MyIntHash {
 	 */
 	private boolean add_LP(int key) {
 		// TODO Part1: Write this function
-		System.out.println(size + " " + tableSize);
 		if (contains_LP(key)) {
 			return false;
 		}
@@ -294,6 +295,43 @@ public class MyIntHash {
 		}
 		return false;
 	}
+	
+	/**
+	 * Adds the key using the Quadratic probing strategy:
+	 * 
+	 * 1) Find the first empty slot quadratically, starting at the index from hashFx(key)
+	 * 2) Update the hash table with the key
+	 * 3) increment the size
+	 * 
+	 * If no empty slots are found, return false - this would indicate that the hash needs to grow...
+	 *
+	 * @param key the key
+	 * @return true, if successful
+	 */
+	private boolean add_QP(int key) {
+		if (contains_QP(key)) {
+			return false;
+		}
+		if (tableSize == size) {
+			growHash(hashTable1, getNewTableSize(tableSize));
+		}
+		int index;
+		for (int i = 0; i < tableSize / 2; i++) {
+			index = key + i * i;
+			index = hashFx(index);
+			if (hashTable1[index] == EMPTY || hashTable1[index] == REMOVED) {
+				hashTable1[index] = key;
+				size++;
+				if (getCurrLoadFactor() > load_factor) {
+					growHash(hashTable1, getNewTableSize(tableSize));
+				}
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	
 	
 	/**
 	 * Contains - uses the Linear Probing method to determine if the key exists in the hash
@@ -323,6 +361,31 @@ public class MyIntHash {
 				return true;
 			}
 			i = wrap(i);
+		}
+
+		return false;
+	}
+	
+	/**
+	 * Contains - uses the Quadratic Probing method to determine if the key exists in the hash
+	 * 
+	 * If no matches found after walking through the entire table, return false
+	 *
+	 * @param key the key
+	 * @return true, if successful
+	 */
+	private boolean contains_QP(int key) {
+		// TODO Part1: Write this method.
+		int index;
+		for (int i = 0; i < tableSize / 2; i++) {
+			index = key + i * i;
+			index = hashFx(index);
+			if (hashTable1[index] == EMPTY) {
+				break;
+			}
+			if (hashTable1[index] == key) {
+				return true;
+			}
 		}
 
 		return false;
@@ -363,6 +426,30 @@ public class MyIntHash {
 		}
 		return false;
 	}
+	
+	/**
+	 * Remove - uses the Quadratic Problem method to evict a key from the hash, if it exists
+	 *
+	 * @param key the key
+	 * @return true, if successful
+	 */
+	private boolean remove_QP(int key) {
+		int index;
+		for (int i = 0; i < tableSize / 2; i++) {
+			index = key + i * i;
+			index = hashFx(index);
+			if (hashTable1[index] == EMPTY) {
+				break;
+			}
+			if (hashTable1[index] == key) {
+				hashTable1[index] = REMOVED;
+				size--;
+				return true;
+			}
+		}
+
+		return false;
+	}
 		
 	/**
 	 * Gets the hash at. Returns the value of the hash at the specified index, and (if required by the operating mode) 
@@ -379,6 +466,7 @@ public class MyIntHash {
 		//             for now, complete the case for Linear Probing
 		switch (mode) {
 		case Linear : return hashTable1[index];
+		case Quadratic : return hashTable1[index];
 		}
 		return EMPTY;
 	}
