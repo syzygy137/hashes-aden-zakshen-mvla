@@ -97,6 +97,11 @@ public class MyIntHash {
 		if (mode == MODE.LinkedList) {
 			hashTableLL = new LinkedList[tableSize];
 			initHashTable(hashTableLL);
+		} else if (mode == MODE.Cuckoo) {
+			hashTable1 = new int[tableSize];
+			hashTable2 = new int[tableSize];
+			initHashTable(hashTable1);
+			initHashTable(hashTable2);
 		} else {
 			hashTable1 = new int[tableSize];
 			initHashTable(hashTable1);
@@ -144,6 +149,16 @@ public class MyIntHash {
 	}
 	
 	/**
+	 * Hash fx for the cuckoo implementation
+	 * @param key the key
+	 * @return the int
+	 */
+	private int hashFx2(int key) {
+		// TODO Part1: Write this method.
+		return (key / tableSize) % tableSize;
+	}
+	
+	/**
 	 * Adds the key to the hash table. Note that this is a helper function that will call the 
 	 * required add function based upon the operating mode. However, before calling the specific
 	 * add function, determine if the hash should be resized; if so, grow the hash.
@@ -161,6 +176,7 @@ public class MyIntHash {
 			case Linear : return add_LP(key);
 			case Quadratic : return add_QP(key);
 			case LinkedList : return add_LL(key);
+			case Cuckoo : return add_C(key);
 			default : return false;
 		}
 	}
@@ -177,6 +193,7 @@ public class MyIntHash {
 			case Linear : return contains_LP(key); 
 			case Quadratic : return contains_QP(key);
 			case LinkedList : return contains_LL(key);
+			case Cuckoo : return contains_C(key);
 			default : return false;
 		}
 	}
@@ -193,6 +210,7 @@ public class MyIntHash {
 			case Linear : return remove_LP(key); 
 			case Quadratic : return remove_QP(key);
 			case LinkedList : return remove_LL(key);
+			case Cuckoo : return remove_C(key);
 			default : return false;
 		}
 	}
@@ -248,6 +266,28 @@ public class MyIntHash {
 				for (int j = 0; j < table[i].size(); j++) {
 					add(table[i].get(j));
 				}
+			}
+		}
+	}
+	
+	/**
+	 * Grow Hash LL
+	 * @param table the table
+	 * @param newSize the new size
+	 */
+	private void growHash(int[] table1, int[] table2, int newSize) {
+		// TODO Part2:  Write this method
+		hashTable1 = new int[newSize];
+		hashTable2 = new int[newSize];
+		tableSize = newSize;
+		initHashTable(hashTable1);
+		initHashTable(hashTable2);
+		for (int i = 0; i < table1.length; i++) {
+			if (table1[i] != -1) {
+				add(table1[i]);
+			}
+			if (table2[i] != -1) {
+				add(table2[i]);
 			}
 		}
 	}
@@ -380,7 +420,7 @@ public class MyIntHash {
 	 * @return true, if successful
 	 */
 	private boolean add_LL(int key) {
-		if (contains_LL(key)) {
+		if (contains_C(key)) {
 			return false;
 		}
 		if (hashTableLL[hashFx(key)] == null) {
@@ -393,6 +433,57 @@ public class MyIntHash {
 		}
 		return true;
 	}
+	
+	/**
+	 * Adds the key using the Cuckoo strategy
+	 * 
+	 * If no empty slots are found, return false - this would indicate that the hash needs to grow...
+	 *
+	 * @param key the key
+	 * @return true, if successful
+	 */
+	private boolean add_C(int key) {
+		if (contains_C(key)) {
+			return false;
+		}
+		if (hashTable1[hashFx(key)] == -1) {
+			hashTable1[hashFx(key)] = key;
+			size++;
+			return true;
+		} else {
+			if (evict(hashTable1[hashFx(key)], 1, key) == false || getCurrLoadFactor() > load_factor) {
+				growHash(hashTable1, hashTable2, getNewTableSize(tableSize + 1000));
+				System.out.println("grow");
+			}
+			System.out.println(getCurrLoadFactor() + " " + size + " " + tableSize);
+			return true;
+		}
+	}
+	
+	public boolean evict(int key, int table, int init) {
+		if (key == init)
+			return false;
+		if (table == 1) {
+			if (hashTable2[hashFx2(key)] == -1) {
+				hashTable1[hashFx(init)] = init;
+				hashTable2[hashFx2(key)] = key;
+				size++;
+				return true;
+			} else {
+				return evict(hashTable2[hashFx(key)], 2, key);
+			}
+		} else {
+			if (hashTable1[hashFx(key)] == -1) {
+				hashTable2[hashFx2(init)] = init;
+				hashTable1[hashFx(key)] = key;
+				size++;
+				return true;
+			} else {
+				return evict(hashTable1[hashFx(key)], 2, key);
+			}
+		}
+	}
+	
 	
 	/**
 	 * Contains - uses the Linear Probing method to determine if the key exists in the hash
@@ -469,6 +560,18 @@ public class MyIntHash {
 		}
 
 		return false;
+	}
+	
+	/**
+	 * Contains - uses the cuckoo method to determine if the key exists in the hash
+	 * 
+	 * If no matches found after walking through the entire table, return false
+	 *
+	 * @param key the key
+	 * @return true, if successful
+	 */
+	private boolean contains_C(int key) {
+		return (hashTable1[hashFx(key)] == key || hashTable2[hashFx2(key)] == key);
 	}
 	
 	/**
@@ -552,6 +655,26 @@ public class MyIntHash {
 
 		return false;
 	}
+	
+	/**
+	 * Remove - uses the Cuckoo method to remove a key from the hash, if it exists
+	 *
+	 * @param key the key
+	 * @return true, if successful
+	 */
+	private boolean remove_C(int key) {
+		if (hashTable1[hashFx(key)] == key) {
+			hashTable1[hashFx(key)] = -1;
+			size--;
+			return true;
+		}
+		if (hashTable2[hashFx2(key)] == key) {
+			hashTable2[hashFx2(key)] = -1;
+			size--;
+			return true;
+		}
+		return false;
+	}
 		
 	/**
 	 * Gets the hash at. Returns the value of the hash at the specified index, and (if required by the operating mode) 
@@ -572,6 +695,8 @@ public class MyIntHash {
 		case LinkedList : 
 			if (hashTableLL[index] == null) return null;
 			return offset >= hashTableLL[index].size() ?  -1 : hashTableLL[index].get(offset);
+		case Cuckoo :
+			return offset == 0 ? hashTable1[index] : hashTable2[index];
 		}
 		return EMPTY;
 	}
@@ -616,7 +741,8 @@ public class MyIntHash {
 	 */
 	public double getCurrLoadFactor() {
 		// TODO: write this method
-		return (double)(size) / (double)(tableSize);
+		return (mode == MODE.Cuckoo) ? (double)(size) / (double)(tableSize * 2) : 
+			(double)(size) / (double)(tableSize);
 	}
 
 	/**
