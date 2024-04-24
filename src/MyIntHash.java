@@ -74,10 +74,16 @@ public class MyIntHash {
 		if (mode == MODE.LinkedList) {
 			hashTableLL = new LinkedList[tableSize];
 			initHashTable(hashTableLL);
+		} else if (mode == MODE.Cuckoo){
+			hashTable1 = new int[tableSize];
+			hashTable2 = new int[tableSize];
+			initHashTable(hashTable1);
+			initHashTable(hashTable2);
 		} else {
 			hashTable1 = new int[tableSize];
 			initHashTable(hashTable1);
 		}
+		
 	}
 
 	/**
@@ -171,7 +177,11 @@ public class MyIntHash {
 		// TODO: Part2 - if adding this key would cause the the hash load to exceed the load_factor, grow the hash.
 		//      Note that you cannot just use size in the numerator... 
 		//      Write the code to implement this check and call growHash() if required (no parameters)
-		
+		if (contains(key))
+			return false;
+		if (getCurrLoadFactor() > load_factor) {
+			growHash();
+		}
 		switch (mode) {
 			case Linear : return add_LP(key);
 			case Quadratic : return add_QP(key);
@@ -223,8 +233,12 @@ public class MyIntHash {
 	 */
 	private void growHash() {
 		int newSize = getNewTableSize(tableSize);
+		
 		switch (mode) {
-		case Linear: growHash(hashTable1,newSize); break;
+		case Linear: growHash(hashTable1, newSize); break;
+		case Quadratic: growHash(hashTable1, newSize); break;
+		case LinkedList: growHash(hashTableLL, newSize); break;
+		case Cuckoo : growHash(hashTable1, hashTable2, newSize); break;
 		}
 	}
 	
@@ -300,12 +314,22 @@ public class MyIntHash {
 	 * @return the new table size
 	 */
 	private int getNewTableSize(int startSize) {
-		int size = startSize * 2 + 1;
+		int size;
+		if (mode == MODE.Cuckoo) {
+			size = startSize + 1000;
+			while (!isPrime(size)) {
+				size += 2;
+			}
+			return size;
+		}
+		size = startSize * 2 + 1;
 		while (!isPrime(size)) {
 			size += 2;
 		}
 		return size;
 	}
+	
+
 	
 	/**
 	 * Checks if is prime.  
@@ -350,25 +374,16 @@ public class MyIntHash {
 	 */
 	private boolean add_LP(int key) {
 		// TODO Part1: Write this function
-		if (contains_LP(key)) {
-			return false;
-		}
 		int index = hashFx(key);
 		if (hashTable1[index] == EMPTY || hashTable1[index] == REMOVED) {
 			hashTable1[index] = key;
 			size++;
-			if (getCurrLoadFactor() > load_factor) {
-				growHash(hashTable1, getNewTableSize(tableSize));
-			}
 			return true;
 		}
 		for (int i = wrap(index); i != index && i < tableSize;) {
 			if (hashTable1[i] == EMPTY || hashTable1[i] == REMOVED) {
 				hashTable1[i] = key;
 				size++;
-				if (getCurrLoadFactor() > load_factor) {
-					growHash(hashTable1, getNewTableSize(tableSize));
-				}
 				return true;
 			}
 			i = wrap(i);
@@ -389,9 +404,6 @@ public class MyIntHash {
 	 * @return true, if successful
 	 */
 	private boolean add_QP(int key) {
-		if (contains_QP(key)) {
-			return false;
-		}
 		if (tableSize == size) {
 			growHash(hashTable1, getNewTableSize(tableSize));
 		}
@@ -402,9 +414,6 @@ public class MyIntHash {
 			if (hashTable1[index] == EMPTY || hashTable1[index] == REMOVED) {
 				hashTable1[index] = key;
 				size++;
-				if (getCurrLoadFactor() > load_factor) {
-					growHash(hashTable1, getNewTableSize(tableSize));
-				}
 				return true;
 			}
 		}
@@ -420,17 +429,12 @@ public class MyIntHash {
 	 * @return true, if successful
 	 */
 	private boolean add_LL(int key) {
-		if (contains_C(key)) {
-			return false;
-		}
+
 		if (hashTableLL[hashFx(key)] == null) {
 			hashTableLL[hashFx(key)] = new LinkedList<Integer>();
 		}
 		hashTableLL[hashFx(key)].add(key);
 		size++;
-		if (getCurrLoadFactor() > load_factor) {
-			growHash(hashTableLL, getNewTableSize(tableSize));
-		}
 		return true;
 	}
 	
@@ -443,43 +447,43 @@ public class MyIntHash {
 	 * @return true, if successful
 	 */
 	private boolean add_C(int key) {
-		if (contains_C(key)) {
-			return false;
-		}
 		if (hashTable1[hashFx(key)] == -1) {
 			hashTable1[hashFx(key)] = key;
 			size++;
 			return true;
 		} else {
-			if (evict(hashTable1[hashFx(key)], 1, key) == false || getCurrLoadFactor() > load_factor) {
-				growHash(hashTable1, hashTable2, getNewTableSize(tableSize + 1000));
-				System.out.println("grow");
+			while (evict(hashTable1[hashFx(key)], 2, key) == false) {
+				growHash(hashTable1, hashTable2, getNewTableSize(tableSize));
 			}
-			System.out.println(getCurrLoadFactor() + " " + size + " " + tableSize);
 			return true;
 		}
 	}
 	
 	public boolean evict(int key, int table, int init) {
-		if (key == init)
+		if (key == init) {
 			return false;
+		}
 		if (table == 1) {
-			if (hashTable2[hashFx2(key)] == -1) {
-				hashTable1[hashFx(init)] = init;
-				hashTable2[hashFx2(key)] = key;
+			if (hashTable1[hashFx(key)] == -1) {
+				hashTable1[hashFx(key)] = key;
+				hashTable2[hashFx2(init)] = init;
 				size++;
 				return true;
 			} else {
-				return evict(hashTable2[hashFx(key)], 2, key);
+				int evictedKey = hashTable1[hashFx(key)];
+				hashTable1[hashFx(key)] = key;
+				return evict(evictedKey, 2, init);
 			}
 		} else {
-			if (hashTable1[hashFx(key)] == -1) {
-				hashTable2[hashFx2(init)] = init;
-				hashTable1[hashFx(key)] = key;
+			if (hashTable2[hashFx2(key)] == -1) {
+				hashTable2[hashFx2(key)] = key;
+				hashTable1[hashFx(init)] = init;
 				size++;
 				return true;
 			} else {
-				return evict(hashTable1[hashFx(key)], 2, key);
+				int evictedKey = hashTable2[hashFx2(key)];
+				hashTable2[hashFx2(key)] = key;
+				return evict(evictedKey, 1, init);
 			}
 		}
 	}
@@ -741,8 +745,8 @@ public class MyIntHash {
 	 */
 	public double getCurrLoadFactor() {
 		// TODO: write this method
-		return (mode == MODE.Cuckoo) ? (double)(size) / (double)(tableSize * 2) : 
-			(double)(size) / (double)(tableSize);
+		return (mode == MODE.Cuckoo) ? (double)(size + 1) / (double)(tableSize * 2) : 
+			(double)(size + 1) / (double)(tableSize);
 	}
 
 	/**
