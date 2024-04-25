@@ -285,8 +285,8 @@ public class MyIntHash {
 	}
 	
 	/**
-	 * Grow Hash LL
-	 * @param table the table
+	 * Grow Hash Cuckoo
+	 * @param tables
 	 * @param newSize the new size
 	 */
 	private void growHash(int[] table1, int[] table2, int newSize) {
@@ -297,10 +297,10 @@ public class MyIntHash {
 		initHashTable(hashTable1);
 		initHashTable(hashTable2);
 		for (int i = 0; i < table1.length; i++) {
-			if (table1[i] != -1) {
+			if (table1[i] != EMPTY) {
 				add(table1[i]);
 			}
-			if (table2[i] != -1) {
+			if (table2[i] != EMPTY) {
 				add(table2[i]);
 			}
 		}
@@ -447,43 +447,52 @@ public class MyIntHash {
 	 * @return true, if successful
 	 */
 	private boolean add_C(int key) {
-		if (hashTable1[hashFx(key)] == -1) {
+		System.out.println("Adding " + key);
+		if (hashTable1[hashFx(key)] == EMPTY) {
 			hashTable1[hashFx(key)] = key;
+			System.out.println(hashFx(key));
 			size++;
 			return true;
 		} else {
-			while (evict(hashTable1[hashFx(key)], 2, key) == false) {
+			while (place(key, true, key) == false) {
+				System.out.println("growing");
 				growHash(hashTable1, hashTable2, getNewTableSize(tableSize));
 			}
 			return true;
 		}
 	}
 	
-	public boolean evict(int key, int table, int init) {
-		if (key == init) {
-			return false;
-		}
-		if (table == 1) {
-			if (hashTable1[hashFx(key)] == -1) {
+	
+	/**
+	 * Places the key
+	 * 
+	 *
+	 * @param key, table, initial key
+	 * @return true, if successful false if loop detected
+	 */
+	public boolean place(int key, boolean table1, int init) {
+		if (table1) {
+			if (hashTable1[hashFx(key)] == EMPTY) {
 				hashTable1[hashFx(key)] = key;
-				hashTable2[hashFx2(init)] = init;
 				size++;
 				return true;
 			} else {
 				int evictedKey = hashTable1[hashFx(key)];
 				hashTable1[hashFx(key)] = key;
-				return evict(evictedKey, 2, init);
+				return place(evictedKey, false, init);
 			}
 		} else {
-			if (hashTable2[hashFx2(key)] == -1) {
+			if (hashTable2[hashFx2(key)] == EMPTY) {
 				hashTable2[hashFx2(key)] = key;
-				hashTable1[hashFx(init)] = init;
 				size++;
 				return true;
 			} else {
+				if (key == init) {
+					return false;
+				}
 				int evictedKey = hashTable2[hashFx2(key)];
 				hashTable2[hashFx2(key)] = key;
-				return evict(evictedKey, 1, init);
+				return place(evictedKey, true, init);
 			}
 		}
 	}
@@ -668,12 +677,12 @@ public class MyIntHash {
 	 */
 	private boolean remove_C(int key) {
 		if (hashTable1[hashFx(key)] == key) {
-			hashTable1[hashFx(key)] = -1;
+			hashTable1[hashFx(key)] = EMPTY;
 			size--;
 			return true;
 		}
 		if (hashTable2[hashFx2(key)] == key) {
-			hashTable2[hashFx2(key)] = -1;
+			hashTable2[hashFx2(key)] = EMPTY;
 			size--;
 			return true;
 		}
@@ -698,7 +707,7 @@ public class MyIntHash {
 		case Quadratic : return hashTable1[index];
 		case LinkedList : 
 			if (hashTableLL[index] == null) return null;
-			return offset >= hashTableLL[index].size() ?  -1 : hashTableLL[index].get(offset);
+			return offset >= hashTableLL[index].size() ?  EMPTY : hashTableLL[index].get(offset);
 		case Cuckoo :
 			return offset == 0 ? hashTable1[index] : hashTable2[index];
 		}
@@ -725,6 +734,10 @@ public class MyIntHash {
 			initHashTable(hashTableLL);
 		} else {
 			initHashTable(hashTable1);
+			if (mode == MODE.Cuckoo) {
+				System.out.println("cuckoo");
+				initHashTable(hashTable2);
+			}
 		}
 	}
 
